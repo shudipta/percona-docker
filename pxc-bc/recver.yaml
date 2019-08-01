@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: recver-pod
+  labels:
+    app: recver
+spec:
+  containers:
+    - name: recver
+      image: alittleprogramming/pxb-24
+      imagePullPolicy: IfNotPresent
+      args:
+        - "bash"
+        - "-c"
+        - |
+          apt-get update; \
+            apt-get install --no-install-recommends --yes \
+              apt-transport-https \
+              ca-certificates nmap netcat iputils-ping \
+            && rm -rf /var/lib/apt/lists/*
+
+          while true; do sleep 1; done
+      ports:
+        - containerPort: 4000
+        - containerPort: 5000
+      volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: bc-volume
+  volumes:
+    - name: bc-volume
+      hostPath:
+        path: /data/bc-volume
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recver
+spec:
+  selector:
+    app: recver
+  ports:
+    - name: p1
+      port: 4000
+      nodePort: 32400
+    - name: p2
+      port: 5000
+      nodePort: 32500
+  type: NodePort
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod-recover
+  labels:
+    app: recover
+spec:
+  containers:
+    - name: recover
+      image: alittleprogramming/percona-xtradb-cluster:5.7-nc-test
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 3306
+        - containerPort: 4567
+        - containerPort: 4568
+      env:
+        - name: MYSQL_ROOT_USRENAME
+          value: "root"
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        ##        - name: DISCOVERY_SERVICE
+        ##          #          value: "10.20.2.4:2379"
+        #          value: "${ETCD}:2379"
+        - name: CLUSTER_NAME
+          value: "cluster-2"
+        #        - name: CLUSTER_JOIN
+        #          # value: ${CLUSTER_JOIN}
+        #          value: hi-pxc-0.pxc-gvr.default.svc.cluster.local
+        - name: XTRABACKUP_PASSWORD
+          value: "Theistare"
+      volumeMounts:
+        - name: bc-volume
+          mountPath: /var/lib/mysql
+  volumes:
+    - name: bc-volume
+      hostPath:
+        path: /data/bc-volume
+  restartPolicy: Always

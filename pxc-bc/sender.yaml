@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sender-pod
+  labels:
+    app: sender
+spec:
+  containers:
+    - name: sender
+      image: alittleprogramming/percona-xtradb-cluster:5.7-nc-test
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 3306
+        - containerPort: 4567
+        - containerPort: 4568
+      env:
+        - name: MYSQL_ROOT_USRENAME
+          value: "root"
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+##        - name: DISCOVERY_SERVICE
+##          #          value: "10.20.2.4:2379"
+#          value: "${ETCD}:2379"
+        - name: CLUSTER_NAME
+          value: "cluster-1"
+        #        - name: CLUSTER_JOIN
+        #          # value: ${CLUSTER_JOIN}
+        #          value: hi-pxc-0.pxc-gvr.default.svc.cluster.local
+        - name: XTRABACKUP_PASSWORD
+          value: "Theistare"
+      volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+  volumes:
+    - name: mysql-persistent-storage
+      emptyDir: {}
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sender
+spec:
+  selector:
+    app: sender
+  ports:
+    - port: 3306
+      name: db
+      nodePort: 30806
+  type: NodePort

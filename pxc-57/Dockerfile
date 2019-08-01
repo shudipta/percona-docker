@@ -18,19 +18,27 @@ RUN wget https://repo.percona.com/apt/percona-release_0.1-6.jessie_all.deb \
 
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN     apt-get update -qq \
-	&& apt-get install -qqy --force-yes \
-		percona-xtradb-cluster-57 curl \
-	&& rm -rf /var/lib/apt/lists/* \
+RUN apt-get update -qq
+RUN echo 1
+RUN apt-get install -qqy --force-yes \
+		percona-xtradb-cluster-57 curl netcat
+RUN echo 2
+RUN rm -rf /var/lib/apt/lists/*
 # comment out any "user" entires in the MySQL config ("docker-entrypoint.sh" or "--user" will handle user switching)
-	&& sed -ri 's/^user\s/#&/' /etc/mysql/my.cnf \
+RUN echo 3
+RUN sed -ri 's/^user\s/#&/' /etc/mysql/my.cnf
+RUN echo 4
 # purge and re-create /var/lib/mysql with appropriate ownership
-	&& rm -rf /var/lib/mysql && mkdir -p /var/lib/mysql /var/run/mysqld \
-	&& chown -R mysql:mysql /var/lib/mysql /var/run/mysqld \
+RUN rm -rf /var/lib/mysql && mkdir -p /var/lib/mysql /var/run/mysqld
+RUN echo 5
+RUN chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+RUN echo 6
 # ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
-	&& chmod 777 /var/run/mysqld
+RUN chmod 777 /var/run/mysqld
+RUN echo 7
 
-RUN sed -ri 's/^bind-address/#&/' /etc/mysql/my.cnf 
+RUN sed -ri 's/^bind-address/#&/' /etc/mysql/my.cnf
+RUN echo 8
 
 #	&& echo 'skip-host-cache\nskip-name-resolve' | awk '{ print } $1 == "[mysqld]" && c == 0 { c = 1; system("cat") }' /etc/mysql/my.cnf > /tmp/my.cnf \
 #	&& mv /tmp/my.cnf /etc/mysql/my.cnf
@@ -45,6 +53,9 @@ ADD node.cnf /etc/mysql/conf.d/node.cnf
 COPY entrypoint.sh /entrypoint.sh
 COPY jq /usr/bin/jq
 COPY clustercheckcron /usr/bin/clustercheckcron
+
+COPY on-start.sh /
+COPY peer-finder /usr/local/bin/
 
 RUN chmod a+x /usr/bin/jq
 RUN chmod a+x /usr/bin/clustercheckcron
